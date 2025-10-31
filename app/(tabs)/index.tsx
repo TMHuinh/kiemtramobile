@@ -5,6 +5,8 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
+  Alert,
+  RefreshControl,
 } from "react-native";
 import TransactionItem from "@/components/TransactionItem";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -22,40 +24,53 @@ export default function HomeScreen() {
   const [apiData, setApiData] = useState<APITxn[]>([]);
   const [sqliteData, setSqliteData] = useState<SQLiteTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const router = useRouter();
 
   // Load dữ liệu SQLite
   const loadSQLiteData = () => {
     try {
       const rows = db.getAllSync(
-        "SELECT * FROM expense WHERE deleted=0 ORDER BY id DESC"
+        "SELECT * FROM transactions ORDER BY id DESC"
       ) as any[];
 
-      if (Array.isArray(rows)) {
-        const formatted: SQLiteTransaction[] = rows.map((r) => ({
-          id: Number(r.id),
-          title: r.title,
-          amount: r.amount,
-          type: r.type,
-          createdAt: r.createdAt,
-          deleted: r.deleted ? true : false,
-        }));
-        setSqliteData(formatted);
-      }
+      const formatted: SQLiteTransaction[] = rows.map((r) => ({
+        id: Number(r.id),
+        title: r.title,
+        amount: r.amount,
+        type: r.type,
+        createdAt: r.createdAt,
+        deleted: r.deleted ? true : false,
+      }));
+      setSqliteData(formatted.filter((t) => !t.deleted));
     } catch (err) {
       console.log("SQLite load error:", err);
       setSqliteData([]);
     }
   };
 
-  // Xóa transaction SQLite
+  // Xóa transaction SQLite với xác nhận
   const deleteSQLiteTransaction = (id: number) => {
-    try {
-      db.runSync("UPDATE transactions SET deleted=1 WHERE id=?", [id]);
-      loadSQLiteData();
-    } catch (err) {
-      console.log("SQLite delete error:", err);
-    }
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc muốn xóa mục này không?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: () => {
+            try {
+              db.runSync("UPDATE transactions SET deleted=1 WHERE id=?", [id]);
+              loadSQLiteData();
+            } catch (err) {
+              console.log("SQLite delete error:", err);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Fetch dữ liệu API
@@ -68,7 +83,6 @@ export default function HomeScreen() {
       const json = await res.json();
       setApiData(json);
 
-      // Khởi tạo DB và load SQLite
       initDB();
       loadSQLiteData();
     } catch (err) {
@@ -78,13 +92,20 @@ export default function HomeScreen() {
     }
   };
 
+  // Pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
-      loadSQLiteData(); // reload khi focus lại screen
+      loadSQLiteData();
     }, [])
   );
 
@@ -113,6 +134,9 @@ export default function HomeScreen() {
         )}
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={<Text style={styles.section}>Dữ liệu API</Text>}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
 
       {/* Dữ liệu SQLite */}
@@ -135,6 +159,9 @@ export default function HomeScreen() {
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={
           <Text style={styles.section}>Dữ liệu SQLite</Text>
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
     </View>
