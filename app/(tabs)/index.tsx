@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  SafeAreaView,
   View,
   Text,
   FlatList,
@@ -25,7 +26,6 @@ export default function HomeScreen() {
   const [sqliteData, setSqliteData] = useState<SQLiteTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
   const router = useRouter();
 
   // Load dữ liệu SQLite
@@ -111,16 +111,16 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <ActivityIndicator size="large" />
-      </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.header}>
         <Text style={styles.title}>EXPENSE TRACKER</Text>
       </View>
@@ -157,14 +157,12 @@ export default function HomeScreen() {
           />
         )}
         contentContainerStyle={{ padding: 16 }}
-        ListHeaderComponent={
-          <Text style={styles.section}>Dữ liệu SQLite</Text>
-        }
+        ListHeaderComponent={<Text style={styles.section}>Dữ liệu SQLite</Text>}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
