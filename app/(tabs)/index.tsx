@@ -1,25 +1,59 @@
-import React from 'react';
-import { SafeAreaView, View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, FlatList, View, StyleSheet, ActivityIndicator, Alert, Text } from 'react-native';
+import TransactionItem from '@/components/TransactionItem';
 
+interface Transaction {
+  id: string;
+  title: string;
+  amount: number;
+  type: 'income' | 'expense';
+  createdAt: string;
+}
 
-export default function Home() {
+export default function HomeScreen() {
+  const [data, setData] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('https://6831c3346205ab0d6c3d87b0.mockapi.io/chitieu');
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      Alert.alert('Lỗi tải dữ liệu', 'Không thể kết nối API');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems:'center' }}>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.header}>
         <Text style={styles.title}>EXPENSE TRACKER</Text>
       </View>
-
-
-      <View style={styles.body}>
-        {/* Placeholder: sau sẽ thay bằng TransactionList component */}
-        <Text style={{ textAlign: 'center', marginTop: 20 }}>
-          Chào mừng — danh sách giao dịch sẽ hiển thị ở đây.
-        </Text>
-      </View>
+      <FlatList
+        data={data}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TransactionItem item={item} onPress={() => {/* chuyển màn hình edit */}} onLongPress={() => {/* xử lý */}} />
+        )}
+        contentContainerStyle={{ padding: 16 }}
+      />
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   header: {
@@ -29,6 +63,5 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     backgroundColor: '#fff'
   },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  body: { flex: 1, padding: 16, backgroundColor: '#f7f8fa' }
+  title: { fontSize: 20, fontWeight: 'bold' }
 });
