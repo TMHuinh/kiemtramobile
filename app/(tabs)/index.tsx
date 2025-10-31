@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, FlatList, View, StyleSheet, ActivityIndicator, Alert, Text } from 'react-native';
 import TransactionItem from '@/components/TransactionItem';
+import { useRouter } from 'expo-router';
 
 interface Transaction {
   id: string;
@@ -13,6 +14,7 @@ interface Transaction {
 export default function HomeScreen() {
   const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchData = async () => {
     try {
@@ -47,7 +49,7 @@ export default function HomeScreen() {
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TransactionItem item={item} onPress={() => {/* chuyển màn hình edit */}} onLongPress={() => {/* xử lý */}} />
+          <TransactionItem item={item} onPress={() => {router.push('../add')}} onLongPress={() => {/* xử lý */}} />
         )}
         contentContainerStyle={{ padding: 16 }}
       />
