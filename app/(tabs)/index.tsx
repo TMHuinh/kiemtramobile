@@ -28,29 +28,31 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  // Load dữ liệu SQLite
+  // Load dữ liệu SQLite, lọc các item chưa bị đánh dấu Deleted
   const loadSQLiteData = () => {
     try {
       const rows = db.getAllSync(
         "SELECT * FROM transactions ORDER BY id DESC"
       ) as any[];
 
-      const formatted: SQLiteTransaction[] = rows.map((r) => ({
-        id: Number(r.id),
-        title: r.title,
-        amount: r.amount,
-        type: r.type,
-        createdAt: r.createdAt,
-        deleted: r.deleted ? true : false,
-      }));
-      setSqliteData(formatted.filter((t) => !t.deleted));
+      const formatted: SQLiteTransaction[] = rows
+        .map((r) => ({
+          id: Number(r.id),
+          title: r.title,
+          amount: r.amount,
+          type: r.type,
+          createdAt: r.createdAt,
+        }))
+        .filter((t) => t.type !== "Deleted"); // lọc item đã xóa
+
+      setSqliteData(formatted);
     } catch (err) {
       console.log("SQLite load error:", err);
       setSqliteData([]);
     }
   };
 
-  // Xóa transaction SQLite với xác nhận
+  // Xóa SQLite transaction bằng cách đánh dấu type = "Deleted"
   const deleteSQLiteTransaction = (id: number) => {
     Alert.alert(
       "Xác nhận xóa",
@@ -62,7 +64,9 @@ export default function HomeScreen() {
           style: "destructive",
           onPress: () => {
             try {
-              db.runSync("UPDATE transactions SET deleted=1 WHERE id=?", [id]);
+              db.runSync("UPDATE transactions SET type='Deleted' WHERE id=?", [
+                id,
+              ]);
               loadSQLiteData();
             } catch (err) {
               console.log("SQLite delete error:", err);
@@ -83,6 +87,7 @@ export default function HomeScreen() {
       const json = await res.json();
       setApiData(json);
 
+      // Khởi tạo DB SQLite và load dữ liệu
       initDB();
       loadSQLiteData();
     } catch (err) {
@@ -112,7 +117,9 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator size="large" />
         </View>
       </SafeAreaView>
@@ -157,7 +164,9 @@ export default function HomeScreen() {
           />
         )}
         contentContainerStyle={{ padding: 16 }}
-        ListHeaderComponent={<Text style={styles.section}>Dữ liệu SQLite</Text>}
+        ListHeaderComponent={
+          <Text style={styles.section}>Dữ liệu SQLite</Text>
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
